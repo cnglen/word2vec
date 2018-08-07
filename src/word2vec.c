@@ -653,10 +653,10 @@ void TrainModel() {
   FILE * fo_second;
   if (binary==2) {
     char * output_file_ = str_replace(output_file, ".txt", ".bin");
-    printf("%s", output_file_);
     fo_second = fopen(output_file_, "wb");
   }
-  
+
+
   if (classes == 0) {
 
     if (binary==2) {            /* save both binary and text  formats  */
