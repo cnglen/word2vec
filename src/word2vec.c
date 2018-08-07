@@ -97,6 +97,53 @@ void ReadWord(char *word, FILE *fin) {
   word[a] = 0;
 }
 
+// You must free the result if result is non-NULL.
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+
 // Returns hash value of a word
 int GetWordHash(char *word) {
   unsigned long long a, hash = 0;
@@ -603,14 +650,52 @@ void TrainModel() {
 #endif
 
   fo = fopen(output_file, "wb");
+  FILE * fo_second;
+  if (binary==2) {
+    char * output_file_ = str_replace(output_file, ".txt", ".bin");
+    printf("%s", output_file_);
+    fo_second = fopen(output_file_, "wb");
+  }
+  
   if (classes == 0) {
-    // Save the word vectors
-    fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
-    for (a = 0; a < vocab_size; a++) {
-      fprintf(fo, "%s ", vocab[a].word);
-      if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
-      else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
-      fprintf(fo, "\n");
+
+    if (binary==2) {            /* save both binary and text  formats  */
+
+      /* text format */
+      fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
+      for (a = 0; a < vocab_size; a++) {
+        fprintf(fo, "%s ", vocab[a].word);
+        for (b = 0; b < layer1_size; b++)
+          fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+        fprintf(fo, "\n");
+      }
+
+      /* binary format */
+      fprintf(fo_second, "%lld %lld\n", vocab_size, layer1_size);
+      for (a = 0; a < vocab_size; a++) {
+        fprintf(fo_second, "%s ", vocab[a].word);
+        for (b = 0; b < layer1_size; b++)
+          fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo_second);
+
+        fprintf(fo_second, "\n");
+      }
+      fclose(fo_second);
+
+    } else {
+      // Save the word vectors in either binary or text format
+      fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
+      for (a = 0; a < vocab_size; a++) {
+        fprintf(fo, "%s ", vocab[a].word);
+        if (binary==1) {
+          for (b = 0; b < layer1_size; b++)
+            fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
+        }
+        else if (binary==0) {
+          for (b = 0; b < layer1_size; b++)
+            fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+        }
+        fprintf(fo, "\n");
+      }
     }
   } else {
     // Run K-means on the word vectors
@@ -656,6 +741,7 @@ void TrainModel() {
     free(cent);
     free(cl);
   }
+
   fclose(fo);
 }
 

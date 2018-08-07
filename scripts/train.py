@@ -15,14 +15,6 @@ import subprocess
 import shlex
 
 
-def tokenize_to_char(ifile):
-
-    text_field = torchtext.data.Field(lower=True, tokenize=list)
-    raw_data = pd.read_csv(ifile, names=["text"], sep="\001")
-    raw_data["preprocessed_text"] = raw_data.text.apply(lambda x: " ".join(text_field.preprocess(x.strip())))
-    raw_data["preprocessed_text"].to_csv(ifile.replace(".txt", "_char.txt"), index=False, header=False)
-
-
 def main():
 
     parser = argparse.ArgumentParser(description='Train word2vec model.',
@@ -50,14 +42,17 @@ def main():
     parser.add_argument("--output-classes", "-oc",
                         help="whether output word classes rather than word vectors:  0 ~ vectors; 1 ~ k-means classes", default=0)
     parser.add_argument("--debug", help="Set the debug mode: 2=more info during training", default=2)
-    parser.add_argument("--binary", help="Save the resulting vectors in binary moded: 0 binary; 1 text", default=0)
-    parser.add_argument("--save-vocab", "-sv",
-                        help="the vocabulary will be saved to <SAVE-VOCAB>", default="/tmp/vocab")
+    parser.add_argument("--binary", "-b",
+                        help="Save the resulting vectors in binary moded: 0 binary; 1 text; 2 both", default=1)
+    # parser.add_argument("--save-vocab", "-sv",
+    #                     help="the vocabulary will be saved to <SAVE-VOCAB>. If not setting, save to `text_data_file.vocab`", default=None)
     # parser.add_argument("--read-vocab", "-rv",
     #                     help="The vocabulary will be read from <READ-VOCAB> , not constructed from the training data")
     parser.add_argument("--cbow", help="Use the continuous bag of words model: 0~skip gram; 1 ~ CBOW", default=1)
 
     args = parser.parse_args()
+
+    args.save_vocab = args.text_data_file.replace(".txt", ".vocab")
 
     cmd = "../bin/word2vec -train {} -output {} -size {} -window {}  -sample {}   -hs {}   -negative {}   -threads {}    -iter {}   -min-count {} --classes {}  -binary {}   -save-vocab {} -cbow {} --alpha {}".format(
         args.text_data_file, args.output_file, args.dim_embedding, args.window_size, args.frequency_threshold, args.use_hierarchical_softmax,
