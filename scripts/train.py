@@ -20,8 +20,9 @@ def main():
     parser = argparse.ArgumentParser(description='Train word2vec model.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("--text-data-file", "-tdf",
-                        help="use text data from <TEXT_DATA> to train the model, assuming tab/space/EOL spaced tokens")
+    required_group = parser.add_argument_group("required named arguments")
+    required_group.add_argument("--text-data-file", "-tdf",
+                                help="use text data from <TEXT_DATA> to train the model, assuming tab/space/EOL spaced tokens", required=True)
     parser.add_argument("--alpha", default=0.025,
                         help="Set the starting learning rate: 0.025 suggested for skip-gram;  0.05 suggested for CBOW")
     parser.add_argument("--dim-embedding", "-dm", help="set size of word vectors (dim of embedding)", default=128)
